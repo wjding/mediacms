@@ -8,15 +8,27 @@ RUN apt-get update -y && \
     apt-get clean
 
 # Install ffmpeg
-RUN wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+#RUN wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+#    mkdir -p ffmpeg-tmp && \
+#    tar -xf ffmpeg-release-amd64-static.tar.xz --strip-components 1 -C ffmpeg-tmp && \
+#    cp -v ffmpeg-tmp/ffmpeg ffmpeg-tmp/ffprobe ffmpeg-tmp/qt-faststart /usr/local/bin && \
+#    rm -rf ffmpeg-tmp ffmpeg-release-amd64-static.tar.xz
+RUN wget -q http://udesktop.lan/download/ffmpeg-release-amd64-static.tar.xz && \
     mkdir -p ffmpeg-tmp && \
     tar -xf ffmpeg-release-amd64-static.tar.xz --strip-components 1 -C ffmpeg-tmp && \
     cp -v ffmpeg-tmp/ffmpeg ffmpeg-tmp/ffprobe ffmpeg-tmp/qt-faststart /usr/local/bin && \
     rm -rf ffmpeg-tmp ffmpeg-release-amd64-static.tar.xz
 
 # Install Bento4 in the specified location
+#RUN mkdir -p /home/mediacms.io/bento4 && \
+#    wget -q http://zebulon.bok.net/Bento4/binaries/Bento4-SDK-1-6-0-637.x86_64-unknown-linux.zip && \
+#    unzip Bento4-SDK-1-6-0-637.x86_64-unknown-linux.zip -d /home/mediacms.io/bento4 && \
+#    mv /home/mediacms.io/bento4/Bento4-SDK-1-6-0-637.x86_64-unknown-linux/* /home/mediacms.io/bento4/ && \
+#    rm -rf /home/mediacms.io/bento4/Bento4-SDK-1-6-0-637.x86_64-unknown-linux && \
+#    rm -rf /home/mediacms.io/bento4/docs && \
+#    rm Bento4-SDK-1-6-0-637.x86_64-unknown-linux.zip
 RUN mkdir -p /home/mediacms.io/bento4 && \
-    wget -q http://zebulon.bok.net/Bento4/binaries/Bento4-SDK-1-6-0-637.x86_64-unknown-linux.zip && \
+    wget -q http://udesktop.lan/download/Bento4-SDK-1-6-0-637.x86_64-unknown-linux.zip && \
     unzip Bento4-SDK-1-6-0-637.x86_64-unknown-linux.zip -d /home/mediacms.io/bento4 && \
     mv /home/mediacms.io/bento4/Bento4-SDK-1-6-0-637.x86_64-unknown-linux/* /home/mediacms.io/bento4/ && \
     rm -rf /home/mediacms.io/bento4/Bento4-SDK-1-6-0-637.x86_64-unknown-linux && \
@@ -28,16 +40,16 @@ FROM python:3.13-bookworm AS runtime_image
 
 SHELL ["/bin/bash", "-c"]
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV CELERY_APP='cms'
-ENV VIRTUAL_ENV=/home/mediacms.io
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    CELERY_APP='cms' \
+    VIRTUAL_ENV=/home/mediacms.io \
+    PATH="\$VIRTUAL_ENV/bin:$PATH"
 
 # Install runtime system dependencies
 RUN apt-get update -y && \
     apt-get -y upgrade && \
-    apt-get install --no-install-recommends supervisor nginx imagemagick procps libxml2-dev libxmlsec1-dev libxmlsec1-openssl -y && \
+    apt-get install --no-install-recommends supervisor nginx imagemagick procps libxml2-dev libxmlsec1-dev libxmlsec1-openssl python3-venv virtualenv -y && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get purge --auto-remove && \
     apt-get clean
@@ -58,7 +70,8 @@ COPY requirements.txt requirements-dev.txt ./
 
 ARG DEVELOPMENT_MODE=False
 
-RUN pip install --no-cache-dir -r requirements.txt && \
+RUN source $VIRTUAL_ENV/bin/activate && \
+    http_proxy=http://proxy.lan:8006 https_proxy=http://proxy.lan:8006 pip install --no-cache-dir -r requirements.txt && \
     if [ "$DEVELOPMENT_MODE" = "True" ]; then \
         echo "Installing development dependencies..." && \
         pip install --no-cache-dir -r requirements-dev.txt; \
@@ -71,6 +84,7 @@ WORKDIR /home/mediacms.io/mediacms
 # required for sprite thumbnail generation for large video files
 
 COPY deploy/docker/policy.xml /etc/ImageMagick-6/policy.xml
+#COPY patch/. /home/mediacms.io/bin
 
 # Set process control environment variables
 ENV ENABLE_UWSGI='yes' \

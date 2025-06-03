@@ -1,4 +1,8 @@
-.PHONY: admin-shell build-frontend
+.PHONY: image
+#.PHONY: admin-shell build-frontend
+
+image:
+	docker build . -t mediacms:wjding
 
 admin-shell:
 	@container_id=$$(docker-compose ps -q web); \

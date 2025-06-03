@@ -2,7 +2,7 @@ version: "3"
 
 services:
   migrations:
-    image: mediacms/mediacms:latest
+    image: mediacms:wjding
     volumes:
       - ./:/home/mediacms.io/mediacms/
     environment:
@@ -17,16 +17,14 @@ services:
     command: "./deploy/docker/prestart.sh"
     restart: on-failure
     depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_healthy
+      - redis
+      - db
   web:
-    image: mediacms/mediacms:latest
+    image: mediacms:wjding
     deploy:
       replicas: 1
     ports:
-      - "80:80"
+      - "88:80"
     volumes:
       - ./:/home/mediacms.io/mediacms/
     environment:
@@ -37,7 +35,7 @@ services:
     depends_on:
       - migrations
   celery_beat:
-    image: mediacms/mediacms:latest
+    image: mediacms:wjding
     volumes:
       - ./:/home/mediacms.io/mediacms/
     environment:
@@ -49,7 +47,7 @@ services:
     depends_on:
       - redis
   celery_worker:
-    image: mediacms/mediacms:latest
+    image: mediacms:wjding
     deploy:
       replicas: 1
     volumes:
